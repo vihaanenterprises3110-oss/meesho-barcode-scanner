@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vihhan Enterprises - Barcode Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .box {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.12);
+    }
+
+    h2 {
+      margin-top: 5px;
+    }
+
+    select, button {
+      width: 100%;
+      padding: 14px;
+      margin: 7px 0;
+      font-size: 17px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    button {
+      background: #198754;
+      color: white;
+      border: none;
+      font-weight: bold;
+    }
+
+    #reader {
+      width: 100%;
+      margin-top: 15px;
+    }
+
+    #result {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 10px;
+      background: #f1f1f1;
+      font-size: 16px;
+      min-height: 30px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="box">
+
+  <h2>📦 Vihhan Enterprises</h2>
+  <h3>Barcode Scanner</h3>
+
+  <select id="scanType">
+    <option value="Dispatch">📦 Dispatch</option>
+    <option value="Return">🔄 Return</option>
+  </select>
+
+  <select id="qty">
+    <option value="1">Qty 1</option>
+    <option value="2">Qty 2</option>
+    <option value="3">Qty 3</option>
+    <option value="4">Qty 4</option>
+    <option value="5">Qty 5</option>
+  </select>
+
+  <div id="reader"></div>
+
+  <div id="result">
+    📷 Camera ચાલુ કરીને Barcode scan કરો
+  </div>
+
+</div>
+
+<script>
+
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbw9ASpEPjvRuKlwM1Fa8U9VzBHRcJ3NmhiRaHfx_GEx4vy6LUuy1G6sfcgAYoxXR-INuQ/exec";
+
+const API_KEY = "VE-Scan-2026-9X7K4M2P8Q";
+
+let lastBarcode = "";
+let lastScanTime = 0;
+let scanner;
+
+function showResult(message) {
+  document.getElementById("result").innerHTML = message;
+}
+
+function sendScan(barcode) {
+
+  const now = Date.now();
+
+  if (barcode === lastBarcode && now - lastScanTime < 3000) {
+    return;
+  }
+
+  lastBarcode = barcode;
+  lastScanTime = now;
+
+  const scanType =
+    document.getElementById("scanType").value;
+
+  const qty =
+    document.getElementById("qty").value;
+
+  showResult("⏳ Barcode checking...");
+
+  const callbackName =
+    "scanCallback_" + Date.now();
+
+  window[callbackName] = function(response) {
+
+    try {
+
+      if (response && response.success) {
+
+        showResult(
+          "✅ <b>Scan Successful</b><br><br>" +
+          "Barcode: " + response.barcode + "<br>" +
+          "SKU: " + response.sku + "<br>" +
+          "Product: " + response.name + "<br>" +
+          "Qty: " + response.qty + "<br>" +
+          "Type: " + response.scanType
+        );
+
+      } else {
+
+        showResult(
+          "❌ " +
+          (response && response.message
+            ? response.message
+            : "Scan failed")
+        );
+
+      }
+
+    } finally {
+
+      delete window[callbackName];
+
+      const oldScript =
+        document.getElementById(callbackName);
+
+      if (oldScript) {
+        oldScript.remove();
+      }
+
+    }
+  };
+
+  const url =
+    API_URL +
+    "?api=scan" +
+    "&key=" + encodeURIComponent(API_KEY) +
+    "&barcode=" + encodeURIComponent(barcode) +
+    "&scanType=" + encodeURIComponent(scanType) +
+    "&qty=" + encodeURIComponent(qty) +
+    "&callback=" + encodeURIComponent(callbackName);
+
+  const script = document.createElement("script");
+
+  script.id = callbackName;
+  script.src = url;
+
+  script.onerror = function() {
+
+    showResult(
+      "❌ Server connection error"
+    );
+
+    delete window[callbackName];
+
+    script.remove();
+  };
+
+  document.body.appendChild(script);
+}
+
+function onScanSuccess(decodedText) {
+
+  sendScan(decodedText);
+
+}
+
+function onScanFailure(error) {
+
+  // Camera scanning દરમિયાન normal errors ignore
+}
+
+function startScanner() {
+
+  scanner = new Html5Qrcode("reader");
+
+  const config = {
+    fps: 10,
+    qrbox: {
+      width: 280,
+      height: 150
+    }
+  };
+
+  scanner.start(
+    {
+      facingMode: "environment"
+    },
+    config,
+    onScanSuccess,
+    onScanFailure
+  )
+  .then(function() {
+
+    showResult(
+      "📷 Camera ready<br>Barcode scan કરો"
+    );
+
+  })
+  .catch(function(error) {
+
+    showResult(
+      "❌ Camera ચાલુ થઈ શકી નથી.<br>" +
+      "Browser camera permission Allow કરો."
+    );
+
+  });
+
+}
+
+startScanner();
+
+</script>
+
+</body>
+</html>

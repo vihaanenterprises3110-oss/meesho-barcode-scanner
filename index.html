@@ -3,146 +3,56 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Vihhan Enterprises - Bulk Label Scanner</title>
-
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      margin: 0;
-      padding: 15px;
-      text-align: center;
-    }
-
-    .box {
-      max-width: 500px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 2px 10px rgba(0,0,0,.12);
-    }
-
-    h2 {
-      margin-top: 5px;
-    }
-
-    #reader {
-      width: 100%;
-      margin-top: 15px;
-    }
-
-    #result {
-      margin-top: 15px;
-      padding: 15px;
-      border-radius: 10px;
-      background: #f1f1f1;
-      font-size: 16px;
-      min-height: 40px;
-      text-align: left;
-    }
-
-    #count {
-      margin-top: 10px;
-      font-size: 18px;
-      font-weight: bold;
-    }
-
-    .success {
-      background: #d1e7dd !important;
-      color: #0f5132;
-    }
-
-    .error {
-      background: #f8d7da !important;
-      color: #842029;
-    }
-
-    button {
-      width: 100%;
-      padding: 14px;
-      margin-top: 10px;
-      font-size: 17px;
-      border: none;
-      border-radius: 8px;
-      background: #198754;
-      color: white;
-      font-weight: bold;
-    }
+    body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:15px;text-align:center}
+    .box{max-width:500px;margin:auto;background:white;padding:20px;border-radius:15px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+    h2{margin-top:5px}
+    #reader{width:100%;margin-top:15px}
+    #result{margin-top:15px;padding:15px;border-radius:10px;background:#f1f1f1;font-size:16px;min-height:40px;text-align:left}
+    #count{margin-top:10px;font-size:18px;font-weight:bold}
+    .success{background:#d1e7dd!important;color:#0f5132}
+    .error{background:#f8d7da!important;color:#842029}
+    button{width:100%;padding:14px;margin-top:10px;font-size:17px;border:none;border-radius:8px;background:#198754;color:white;font-weight:bold}
   </style>
 </head>
-
 <body>
-
 <div class="box">
-
   <h2>📦 Vihhan Enterprises</h2>
   <h3>Bulk Label Scanner</h3>
 
-  <div id="count">
-    Scanned: 0
-  </div>
-
+  <div id="count">Scanned: 0</div>
   <div id="reader"></div>
 
-  <div id="result">
-    📷 Camera ચાલુ કરીને Label Barcode scan કરો
-  </div>
+  <div id="result">📷 Camera ચાલુ કરીને Label Barcode scan કરો</div>
 
-  <button onclick="resetScanner()">
-    🔄 Reset Scanner
-  </button>
-
+  <button onclick="resetScanner()">🔄 Reset Scanner</button>
 </div>
 
 <script>
-
 const API_URL =
 "https://script.google.com/macros/s/AKfycbw9ASpEPjvRuKlwM1Fa8U9VzBHRcJ3NmhiRaHfx_GEx4vy6LUuy1G6sfcgAYoxXR-INuQ/exec";
 
 const API_KEY = "VE-Scan-2026-9X7K4M2P8Q";
 
-let scanner;
 let lastBarcode = "";
 let lastScanTime = 0;
 let scannedCount = 0;
 
-
-/* SHOW RESULT */
-
 function showResult(message, type) {
-
   const box = document.getElementById("result");
-
   box.innerHTML = message;
-
   box.className = "";
 
-  if (type === "success") {
-    box.classList.add("success");
-  }
-
-  if (type === "error") {
-    box.classList.add("error");
-  }
+  if (type === "success") box.classList.add("success");
+  if (type === "error") box.classList.add("error");
 }
 
-
-/* BARCODE FOUND */
-
 function onScanSuccess(decodedText) {
-
   const barcode = String(decodedText).trim();
-
   const now = Date.now();
 
-  /* Same barcode repeatedly scan થાય તો ignore */
-
-  if (
-    barcode === lastBarcode &&
-    now - lastScanTime < 4000
-  ) {
+  if (barcode === lastBarcode && now - lastScanTime < 4000) {
     return;
   }
 
@@ -150,146 +60,82 @@ function onScanSuccess(decodedText) {
   lastScanTime = now;
 
   showResult(
-    "⏳ Barcode checking...<br><br>" +
-    "Barcode: <b>" + barcode + "</b>",
+    "⏳ Barcode checking...<br><br>Barcode: <b>" + barcode + "</b>",
     ""
   );
 
   sendBarcode(barcode);
 }
 
-
-/* SEND BARCODE TO APPS SCRIPT */
-
 function sendBarcode(barcode) {
-
-  const callbackName =
-    "scanCallback_" + Date.now();
+  const callbackName = "scanCallback_" + Date.now();
 
   window[callbackName] = function(response) {
-
     try {
-
       if (response && response.success) {
-
         scannedCount++;
 
         document.getElementById("count").innerHTML =
           "Scanned: " + scannedCount;
 
         showResult(
-
           "✅ <b>SCAN SUCCESSFUL</b><br><br>" +
-
-          "Barcode: <b>" +
-          (response.barcode || barcode) +
-          "</b><br><br>" +
-
-          "SKU: <b>" +
-          (response.sku || "-") +
-          "</b><br>" +
-
-          "Product: <b>" +
-          (response.name || "-") +
-          "</b><br>" +
-
-          "Order: <b>" +
-          (response.orderNo || "-") +
-          "</b><br>" +
-
-          "Size: <b>" +
-          (response.size || "-") +
-          "</b><br>" +
-
-          "Qty: <b>" +
-          (response.qty || 1) +
-          "</b><br>" +
-
-          "Status: <b>" +
-          (response.status || "Completed") +
-          "</b>",
-
+          "Barcode: <b>" + (response.barcode || barcode) + "</b><br><br>" +
+          "SKU: <b>" + (response.sku || "-") + "</b><br>" +
+          "Product: <b>" + (response.name || "-") + "</b><br>" +
+          "Order: <b>" + (response.orderNo || "-") + "</b><br>" +
+          "Size: <b>" + (response.size || "-") + "</b><br>" +
+          "Qty: <b>" + (response.qty || 1) + "</b><br>" +
+          "Status: <b>" + (response.status || "Completed") + "</b>",
           "success"
         );
-
       } else {
-
         showResult(
-
           "❌ <b>SCAN FAILED</b><br><br>" +
-
           (response && response.message
             ? response.message
             : "Barcode મળ્યો નથી"),
-
           "error"
         );
-
       }
-
     } finally {
-
       delete window[callbackName];
-
-      const oldScript =
-        document.getElementById(callbackName);
-
-      if (oldScript) {
-        oldScript.remove();
-      }
-
+      const oldScript = document.getElementById(callbackName);
+      if (oldScript) oldScript.remove();
     }
-
   };
-
 
   const url =
     API_URL +
     "?api=scan" +
-    "&key=" +
-    encodeURIComponent(API_KEY) +
-    "&barcode=" +
-    encodeURIComponent(barcode) +
+    "&key=" + encodeURIComponent(API_KEY) +
+    "&barcode=" + encodeURIComponent(barcode) +
     "&scanType=Dispatch" +
     "&qty=1" +
-    "&callback=" +
-    encodeURIComponent(callbackName);
+    "&callback=" + encodeURIComponent(callbackName);
 
-
-  const script =
-    document.createElement("script");
-
+  const script = document.createElement("script");
   script.id = callbackName;
-
   script.src = url;
 
   script.onerror = function() {
-
-showResult(
-  "❌ API request failed.<br><br>Apps Script API response મળ્યો નથી.",
-  "error"
-);
+    showResult(
+      "❌ API request failed.<br><br>Apps Script API response મળ્યો નથી.",
+      "error"
+    );
 
     delete window[callbackName];
-
     script.remove();
-
   };
 
   document.body.appendChild(script);
 }
 
-
-/* SCAN ERROR - IGNORE */
-
 function onScanFailure(error) {
   // સતત camera scanning દરમિયાન errors ignore
 }
 
-
-/* START CAMERA */
 function startScanner() {
-
   const config = {
     fps: 10,
     qrbox: {
@@ -312,35 +158,22 @@ function startScanner() {
     onScanSuccess,
     onScanFailure
   );
-
 }
 
-
-/* RESET */
-
 function resetScanner() {
-
   lastBarcode = "";
   lastScanTime = 0;
   scannedCount = 0;
 
-  document.getElementById("count").innerHTML =
-    "Scanned: 0";
+  document.getElementById("count").innerHTML = "Scanned: 0";
 
   showResult(
-    "📷 Camera ચાલુ છે.<br><br>" +
-    "આગળનું Label scan કરો.",
+    "📷 Camera ચાલુ છે.<br><br>આગળનું Label scan કરો.",
     ""
   );
-
-
-
-
-/* START */
+}
 
 startScanner();
-
 </script>
-
 </body>
 </html>

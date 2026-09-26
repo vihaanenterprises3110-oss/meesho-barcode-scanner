@@ -265,9 +265,10 @@ function sendBarcode(barcode) {
 
   script.onerror = function() {
 
-    showResult(
-      "❌ Server connection error",
-      "error"
+showResult(
+  "❌ API request failed.<br><br>Apps Script API response મળ્યો નથી.",
+  "error"
+);
     );
 
     delete window[callbackName];

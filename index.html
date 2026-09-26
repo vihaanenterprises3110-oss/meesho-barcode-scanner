@@ -289,47 +289,30 @@ function onScanFailure(error) {
 
 
 /* START CAMERA */
-
 function startScanner() {
-
-  scanner = new Html5Qrcode("reader");
 
   const config = {
     fps: 10,
     qrbox: {
       width: 300,
       height: 160
-    }
+    },
+    rememberLastUsedCamera: true,
+    supportedScanTypes: [
+      Html5QrcodeScanType.SCAN_TYPE_CAMERA
+    ]
   };
 
-  scanner.start(
-    {
-      facingMode: "environment"
-    },
+  const html5QrcodeScanner = new Html5QrcodeScanner(
+    "reader",
     config,
+    false
+  );
+
+  html5QrcodeScanner.render(
     onScanSuccess,
     onScanFailure
-  )
-
-  .then(function() {
-
-    showResult(
-      "📷 <b>Camera Ready</b><br><br>" +
-      "Label Barcode scan કરો.",
-      ""
-    );
-
-  })
-
-  .catch(function(error) {
-
-    showResult(
-      "❌ Camera ચાલુ થઈ શકી નથી.<br><br>" +
-      "Browser camera permission Allow કરો.",
-      "error"
-    );
-
-  });
+  );
 
 }
 

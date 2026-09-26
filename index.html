@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Vihhan Enterprises - Barcode Scanner</title>
+  <title>Vihhan Enterprises - Bulk Label Scanner</title>
 
   <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -28,23 +28,6 @@
       margin-top: 5px;
     }
 
-    select, button {
-      width: 100%;
-      padding: 14px;
-      margin: 7px 0;
-      font-size: 17px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-    }
-
-    button {
-      background: #198754;
-      color: white;
-      border: none;
-      font-weight: bold;
-    }
-
     #reader {
       width: 100%;
       margin-top: 15px;
@@ -56,7 +39,36 @@
       border-radius: 10px;
       background: #f1f1f1;
       font-size: 16px;
-      min-height: 30px;
+      min-height: 40px;
+      text-align: left;
+    }
+
+    #count {
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .success {
+      background: #d1e7dd !important;
+      color: #0f5132;
+    }
+
+    .error {
+      background: #f8d7da !important;
+      color: #842029;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 10px;
+      font-size: 17px;
+      border: none;
+      border-radius: 8px;
+      background: #198754;
+      color: white;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -66,62 +78,90 @@
 <div class="box">
 
   <h2>📦 Vihhan Enterprises</h2>
-  <h3>Barcode Scanner</h3>
+  <h3>Bulk Label Scanner</h3>
 
-  <select id="scanType">
-    <option value="Dispatch">📦 Dispatch</option>
-    <option value="Return">🔄 Return</option>
-  </select>
-
-  <select id="qty">
-    <option value="1">Qty 1</option>
-    <option value="2">Qty 2</option>
-    <option value="3">Qty 3</option>
-    <option value="4">Qty 4</option>
-    <option value="5">Qty 5</option>
-  </select>
+  <div id="count">
+    Scanned: 0
+  </div>
 
   <div id="reader"></div>
 
   <div id="result">
-    📷 Camera ચાલુ કરીને Barcode scan કરો
+    📷 Camera ચાલુ કરીને Label Barcode scan કરો
   </div>
+
+  <button onclick="resetScanner()">
+    🔄 Reset Scanner
+  </button>
 
 </div>
 
 <script>
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbw9ASpEPjvRuKlwM1Fa8U9VzBHRcJ3NmhiRaHfx_GEx4vy6LUuy1G6sfcgAYoxXR-INuQ/exec";
+"https://script.google.com/macros/s/AKfycbw9ASpEPjvRuKlwM1Fa8U9VzBHRcJ3NmhiRaHfx_GEx4vy6LUuy1G6sfcgAYoxXR-INuQ/exec";
 
 const API_KEY = "VE-Scan-2026-9X7K4M2P8Q";
 
+let scanner;
 let lastBarcode = "";
 let lastScanTime = 0;
-let scanner;
+let scannedCount = 0;
 
-function showResult(message) {
-  document.getElementById("result").innerHTML = message;
+
+/* SHOW RESULT */
+
+function showResult(message, type) {
+
+  const box = document.getElementById("result");
+
+  box.innerHTML = message;
+
+  box.className = "";
+
+  if (type === "success") {
+    box.classList.add("success");
+  }
+
+  if (type === "error") {
+    box.classList.add("error");
+  }
 }
 
-function sendScan(barcode) {
+
+/* BARCODE FOUND */
+
+function onScanSuccess(decodedText) {
+
+  const barcode = String(decodedText).trim();
 
   const now = Date.now();
 
-  if (barcode === lastBarcode && now - lastScanTime < 3000) {
+  /* Same barcode repeatedly scan થાય તો ignore */
+
+  if (
+    barcode === lastBarcode &&
+    now - lastScanTime < 4000
+  ) {
     return;
   }
 
   lastBarcode = barcode;
   lastScanTime = now;
 
-  const scanType =
-    document.getElementById("scanType").value;
+  showResult(
+    "⏳ Barcode checking...<br><br>" +
+    "Barcode: <b>" + barcode + "</b>",
+    ""
+  );
 
-  const qty =
-    document.getElementById("qty").value;
+  sendBarcode(barcode);
+}
 
-  showResult("⏳ Barcode checking...");
+
+/* SEND BARCODE TO APPS SCRIPT */
+
+function sendBarcode(barcode) {
 
   const callbackName =
     "scanCallback_" + Date.now();
@@ -132,22 +172,57 @@ function sendScan(barcode) {
 
       if (response && response.success) {
 
+        scannedCount++;
+
+        document.getElementById("count").innerHTML =
+          "Scanned: " + scannedCount;
+
         showResult(
-          "✅ <b>Scan Successful</b><br><br>" +
-          "Barcode: " + response.barcode + "<br>" +
-          "SKU: " + response.sku + "<br>" +
-          "Product: " + response.name + "<br>" +
-          "Qty: " + response.qty + "<br>" +
-          "Type: " + response.scanType
+
+          "✅ <b>SCAN SUCCESSFUL</b><br><br>" +
+
+          "Barcode: <b>" +
+          (response.barcode || barcode) +
+          "</b><br><br>" +
+
+          "SKU: <b>" +
+          (response.sku || "-") +
+          "</b><br>" +
+
+          "Product: <b>" +
+          (response.name || "-") +
+          "</b><br>" +
+
+          "Order: <b>" +
+          (response.orderNo || "-") +
+          "</b><br>" +
+
+          "Size: <b>" +
+          (response.size || "-") +
+          "</b><br>" +
+
+          "Qty: <b>" +
+          (response.qty || 1) +
+          "</b><br>" +
+
+          "Status: <b>" +
+          (response.status || "Completed") +
+          "</b>",
+
+          "success"
         );
 
       } else {
 
         showResult(
-          "❌ " +
+
+          "❌ <b>SCAN FAILED</b><br><br>" +
+
           (response && response.message
             ? response.message
-            : "Scan failed")
+            : "Barcode મળ્યો નથી"),
+
+          "error"
         );
 
       }
@@ -164,46 +239,55 @@ function sendScan(barcode) {
       }
 
     }
+
   };
+
 
   const url =
     API_URL +
     "?api=scan" +
-    "&key=" + encodeURIComponent(API_KEY) +
-    "&barcode=" + encodeURIComponent(barcode) +
-    "&scanType=" + encodeURIComponent(scanType) +
-    "&qty=" + encodeURIComponent(qty) +
-    "&callback=" + encodeURIComponent(callbackName);
+    "&key=" +
+    encodeURIComponent(API_KEY) +
+    "&barcode=" +
+    encodeURIComponent(barcode) +
+    "&scanType=Dispatch" +
+    "&qty=1" +
+    "&callback=" +
+    encodeURIComponent(callbackName);
 
-  const script = document.createElement("script");
+
+  const script =
+    document.createElement("script");
 
   script.id = callbackName;
+
   script.src = url;
 
   script.onerror = function() {
 
     showResult(
-      "❌ Server connection error"
+      "❌ Server connection error",
+      "error"
     );
 
     delete window[callbackName];
 
     script.remove();
+
   };
 
   document.body.appendChild(script);
 }
 
-function onScanSuccess(decodedText) {
 
-  sendScan(decodedText);
-
-}
+/* SCAN ERROR - IGNORE */
 
 function onScanFailure(error) {
-
-  // Camera scanning દરમિયાન normal errors ignore
+  // સતત camera scanning દરમિયાન errors ignore
 }
+
+
+/* START CAMERA */
 
 function startScanner() {
 
@@ -212,8 +296,8 @@ function startScanner() {
   const config = {
     fps: 10,
     qrbox: {
-      width: 280,
-      height: 150
+      width: 300,
+      height: 160
     }
   };
 
@@ -225,23 +309,51 @@ function startScanner() {
     onScanSuccess,
     onScanFailure
   )
+
   .then(function() {
 
     showResult(
-      "📷 Camera ready<br>Barcode scan કરો"
+      "📷 <b>Camera Ready</b><br><br>" +
+      "Label Barcode scan કરો.",
+      ""
     );
 
   })
+
   .catch(function(error) {
 
     showResult(
-      "❌ Camera ચાલુ થઈ શકી નથી.<br>" +
-      "Browser camera permission Allow કરો."
+      "❌ Camera ચાલુ થઈ શકી નથી.<br><br>" +
+      "Browser camera permission Allow કરો.",
+      "error"
     );
 
   });
 
 }
+
+
+/* RESET */
+
+function resetScanner() {
+
+  lastBarcode = "";
+  lastScanTime = 0;
+  scannedCount = 0;
+
+  document.getElementById("count").innerHTML =
+    "Scanned: 0";
+
+  showResult(
+    "📷 Camera ચાલુ છે.<br><br>" +
+    "આગળનું Label scan કરો.",
+    ""
+  );
+
+}
+
+
+/* START */
 
 startScanner();
 
